@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <script src="https://unpkg.com/mapillary-js@4.1.2/dist/mapillary.js"></script>
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <link rel="stylesheet" href="https://unpkg.com/mapillary-js@4.1.2/dist/mapillary.css">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+  <style>
+    /* p {
+      background: #728913;
+      color: black;
+      transition: 1s linear color;
+    }
+    p:hover {
+      color: #fff;
+    } */
+    @keyframes spin {
+      from { rotate: 0deg }
+      to { rotate: 360deg }
+    }
+    #spinner > svg {
+      animation: spin 5s linear infinite;
+    }
+    #view {
+      height: 300px;
+    }
+    #map {
+      height: 300px;
+    }
+    .answerFlag {
+      display: flex;
+      font-size: 2rem;
+      align-items: end;
+      justify-content: start;
+    }
+  </style>
+</head>
+<body>
+  <svg
+    id="compass"
+    viewBox="-5 -5 10 10"
+    width="50"
+    height="50"
+  >
+    <circle r="5" fill="black"/>
+    <polygon points="0,-5 -2,0 2,0" fill="red"/>
+    <polygon points="0,5 -2,0 2,0" fill="white"/>
+  </svg>
+  <figure id="view">
+
+  </figure>
+  <figure id="map">
+
+  </figure>
+  <!--
+  <p id="abc">Text</p>
+  <p><a href="#abc">Another</a></p>
+  <input id="userInput"/>
+  -->
+  <dialog id="spinner">
+    <svg
+      viewBox="-5 -5 10 10"
+      width="50"
+      height="50"
+    >
+      <circle r="5" fill="black"/>
+      <polygon points="0,-5 -2,0 2,0" fill="red"/>
+      <polygon points="0,5 -2,0 2,0" fill="white"/>
+    </svg>
+  </dialog>
+  <script>
+    var { Viewer } = mapillary;
+
+    var TOKEN = "MLY|8670740469708214|68725d261ba9f7ba7fb6c9b65eaa4ae8";
+    var viewer = new Viewer({
+      accessToken: TOKEN,
+      container: "view",
+      component: {
+        cover: false,
+        attribution: false,
+        sequence: false,
+        zoom: false,
+        bearing: false,
+      },
+    });
+    viewer.on("bearing", function (event) {
+      document.getElementById("compass").style.rotate = (360 - event.bearing.toFixed(0)) + "deg";
+    });
+
+    var map = L.map("map").setView([0, 0], 0);
+    L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", { maxZoom: 19 }).addTo(map);
+    var guessMarker = L.marker([0, 0]);
+    var answerMarker = L.marker([0, 0], { icon: L.divIcon({ html: "🏁", className: "answerFlag" }) });
+
+    async function getImagery(bbox, pano = true) {
+      var url = new URL("https://graph.mapillary.com/images");
+      url.searchParams.set("access_token", TOKEN);
+      url.searchParams.set("bbox", bbox);
+      url.searchParams.set("is_pano", pano);
+      url.searchParams.set("limit", 2);
+      var body = await fetch(url).then(r => r.json());
+      return body.data.map(img => {
+        return { id: img.id, coords: img.geometry.coordinates };
+      });
+    }
+
+    window.addEventListener("load", async function () {
+      var image = await getImagery([0, -70, 170, 0]);
+      viewer.moveTo(image[0].id);
+      answerMarker.setLatLng([image[0].coords[1], image[0].coords[0]]);
+      //.addTo(map);
+    });
+
+    // var latlng = [Math.random() * 180 - 90, Math.random() * 360 - 180];
+    // L.marker(latlng).addTo(map);
+
+    map.on("click", function (event) {
+      guessMarker.setLatLng(event.latlng).addTo(map);
+      var guess = event.latlng;
+      var answer = answerMarker.getLatLng();
+      var score = Math.trunc(5000 * Math.exp(-2 * Math.PI * Math.max(0, map.distance(answer, guess) - 20) / 20_000_000) ** 2);
+      alert("Your score: " + score);
+      answerMarker.addTo(map);
+    });
+
+  </script>
+  <!-- <script>
+    // console.log("Hello!");
+    // var x1 = 3;
+    // var y1 = 3;
+    // var x2 = 4;
+    // var y2 = 3;
+    // var distance = Math.sqrt((x1 - x2) ** 2 + (y1 - y2) ** 2);
+    // console.log(distance);
+    // var el = document.createElement("p")
+    // document.body.append(el);
+
+    // // var a = Number(prompt("Input guess for number x1:"));
+    // // var b = Number(prompt("Input guess for number y1:"));
+    // // The above lines are getting guesses and converting to number
+    // // alert("A + B = " + (a + b));
+    // // var distance = Math.sqrt((x1 - a) ** 2 + (y1 - b) ** 2);
+    // // alert(distance);
+
+    // var el = document.getElementById("abc");
+    // el.addEventListener("click", function () {
+    //     el.textContent = "wow! interactive :D"
+    // });
+
+    // var el = document.getElementById("userInput");
+    // el.addEventListener("change", function () {
+    //     console.log(el.value);
+    // });
+
+    // document.getElementById("spinner").showModal();
+  </script> -->
+</body>
+</html>

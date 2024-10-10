@@ -17,6 +17,11 @@ You'll also have built a working [GeoGuessr](https://www.geoguessr.com/) clone, 
 You can preview what your's might look like here: <https://progsoc.github.io/JavaScript2024/game.html>
 
 
+## Live
+
+The result of the live coding during the workshop is here: <https://progsoc.github.io/JavaScript2024/live.html>
+
+
 ## Instructions
 
 * Slides: <https://docs.google.com/presentation/d/1AVtajnmfTIq4Q5KZmoaTH_dJ6GkPLFhu2ScoFnnDA5E>
@@ -24,37 +29,5 @@ You can preview what your's might look like here: <https://progsoc.github.io/Jav
 ### Tools
 
 * A computer
-* A text editor
+* A text editor (notepad or vscode)
 * A graphical web browser
-
-<!-- ## Workshop
-
-* HTML File
-  * Text
-  * Tags
-  * Documents
-* Basic Scripting
-  * Logging
-    * ***Scoring***
-  * `document.write`
-  * The DOM
-    * `textContent`
-    * `innerHTML`
-    * (`<input>`)`.value`
-    * `onclick=`
-    * `append()`
-* Components
-  * ***Compass***
-    * For-loop to simulate spin
-  * ***Zoom Controls***
-  * ***Map Panel***
-    * Make Guess
-  * ***Game Status***
-    * Round Number
-    * Score (e^(-(ex)^2))
-
-
-### Wish-list
-
-* Seeded random for co-op or multiplayer campaigns
-* Or WebRTC? -->
