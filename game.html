@@ -256,7 +256,10 @@
         },
       });
       viewer.on("bearing", function (event) {
-        document.getElementById("game-info-bearing").style.rotate = (360 - event.bearing.toFixed(0)) + "deg";
+        document.getElementById("compass")
+          .style.rotate = (
+            (360 - event.bearing.toFixed(0)) + "deg"
+          );
       });
       state.score = 0;
       state.round = 0;
@@ -290,7 +293,7 @@
       document.getElementById("game-info-round").textContent = `${state.round} / 5`;
       document.getElementById("game-info-score").textContent = state.score;
       // reset image
-      state.image = await uniformImagery(`ProgSocJS2024:${state.round}`, [-170, -80, 170, 80]);
+      state.image = await uniformImagery(`${document.getElementById("game-seed").value}:${state.round}`, [-170, -80, 170, 80]);
       await resetCamera();
       // reset map
       map.setView([0, 0], 0);
@@ -320,9 +323,9 @@
       setTimeout(nextRound, 5000);
     }
 
-    function calculateScore(range, target, guess) {
-      return 5000 * Math.exp(-1 * (Math.e * L.distance(target, guess) / range) ** 2);
-    }
+    // function calculateScore(range, target, guess) {
+    //   return 5000 * Math.exp(-1 * (Math.e * L.distance(target, guess) / range) ** 2);
+    // }
   </script>
 </body>
 </html>
