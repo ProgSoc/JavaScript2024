@@ -71,6 +71,28 @@
     #spinner svg {
       animation: spin 1s linear infinite;
     }
+    .fancy-button {
+      color: white;
+      border: none;
+      border-top: 0.5rem solid transparent;
+      /* border-top: 0.5rem solid #6b4; */
+      border-bottom: 0.5rem solid #0005;
+      border-radius: 1.5rem;
+      font-size: 1.5rem;
+      font-weight: bold;
+      padding: 0.25rem 1rem;
+    }
+    .fancy-button:hover {
+      cursor: pointer;
+    }
+    .fancy-button:not(:active) {
+      padding-bottom: 0.75rem
+    }
+    .fancy-button:active {
+      border-top: 0.5rem solid #0007;
+      border-bottom: 0.5rem solid transparent;
+      padding-top: 0.75rem
+    }
   </style>
 </head>
 <body>
@@ -81,7 +103,7 @@
         <label>Seed: <input id="game-seed" type="text" value="ProgSocJS2024"></label>
       </p>
       <menu>
-        <li><button onclick="resetGame()">Start Game</button></li>
+        <li><button onclick="resetGame()" class="fancy-button" style="background-color: green;">Start Game</button></li>
       </menu>
     </nav>
   </header>
@@ -117,7 +139,7 @@
         <br/>
         <progress id="scoreboard-bar" max="25000"></progress>
       </p>
-      <button onclick="resetGame()">Play Again</button>
+      <button onclick="resetGame()" class="fancy-button" style="background-color: orange;">Play Again</button>
     </dialog>
     <dialog id="spinner">
       <svg viewBox="-5 -5 10 10" width="100" height="100">
