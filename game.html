@@ -1,0 +1,303 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Global DOMination</title>
+  <script src="https://unpkg.com/mapillary-js@4.1.2/dist/mapillary.js"></script>
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/seedrandom/3.0.5/seedrandom.min.js"></script>
+  <link rel="stylesheet" href="https://unpkg.com/mapillary-js@4.1.2/dist/mapillary.css">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+  <style>
+    figure {
+      margin: 0;
+    }
+    #view {
+      position: absolute;
+      inset: 0;
+      margin: 0;
+    }
+    .game-toolbar-move {
+      position: absolute;
+      z-index: 100;
+      top: 1em;
+      left: 1em;
+    }
+    .game-toolbar-map {
+      position: absolute;
+      z-index: 100;
+      bottom: 1em;
+      right: 1em;
+    }
+    .game-toolbar-score {
+      position: absolute;
+      z-index: 100;
+      top: 1em;
+      right: 1em;
+      background: #fff7;
+      padding: 0.5rem;
+    }
+    #game-map {
+      width: 300px;
+      height: 180px;
+      transition: all 0.2s ease-in-out;
+    }
+    .game-toolbar-map:hover #game-map {
+      width: 800px;
+      height: 600px;
+      cursor: crosshair;
+    }
+    .leaflet-div-icon {
+      background: none;
+      border: none;
+    }
+    .answerFlag {
+      display: flex;
+      font-size: 2rem;
+      align-items: end;
+      justify-content: start;
+    }
+    dialog::backdrop {
+      backdrop-filter: blur(5px);
+    }
+    @keyframes spin {
+      from { transform: rotate(0deg); }
+      to { transform: rotate(360deg); }
+    }
+    #spinner {
+      padding: 2rem;
+    }
+    #spinner svg {
+      animation: spin 1s linear infinite;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Global DOMination</h1>
+    <nav>
+      <p>
+        <label>Seed: <input id="game-seed" type="text" value="ProgSocJS2024"></label>
+      </p>
+      <menu>
+        <li><button onclick="resetGame()">Start Game</button></li>
+      </menu>
+    </nav>
+  </header>
+  <main>
+    <figure id="view" hidden>
+      <div class="game-toolbar-move">
+        <p>
+          <svg id="game-info-bearing" viewBox="-5 -5 10 10">
+            <circle r="5" fill="#fff9"/>
+            <circle r="3" fill="#0009"/>
+            <polygon points="-1.5,0 0,5 1.5,0" fill="#fff"/>
+            <polygon points="-1.5,0 0,-5 1.5,0" fill="#f45"/>
+          </svg>
+        </p>
+        <p>
+          <button onclick="resetCamera()">↩️</button>
+        </p>
+      </div>
+      <div class="game-toolbar-map">
+        <figure id="game-map"></figure>
+        <button id="game-make-guess" disabled onclick="makeGuess()">Make Guess</button>
+      </div>
+      <div class="game-toolbar-score">
+        <span>Round <span id="game-info-round"></span></span>
+        <span>Score <span id="game-info-score"></span></span>
+      </div>
+    </figure>
+    <dialog id="scoreboard">
+      <figure id="scoreboard-map" style="min-width: 800px; min-height: 600px;"></figure>
+      <hr>
+      <p>
+        Your total score was <span id="scoreboard-score"></span> points!
+        <br/>
+        <progress id="scoreboard-bar" max="25000"></progress>
+      </p>
+      <button onclick="resetGame()">Play Again</button>
+    </dialog>
+    <dialog id="spinner">
+      <svg viewBox="-5 -5 10 10" width="100" height="100">
+        <circle r="1" transform="rotate(000) translate(4)"/>
+        <circle r="1" transform="rotate(045) translate(4)"/>
+        <circle r="1" transform="rotate(090) translate(4)"/>
+        <circle r="1" transform="rotate(135) translate(4)"/>
+        <circle r="1" transform="rotate(180) translate(4)"/>
+        <circle r="1" transform="rotate(225) translate(4)"/>
+        <circle r="1" transform="rotate(270) translate(4)"/>
+      </svg>
+    </dialog>
+  </main>
+  <hr>
+  <footer>
+    <a href="https://progsoc.org">ProgSoc</a> - JavaScript Workshop 2024
+  </footer>
+  <script>
+    var { Viewer } = mapillary;
+
+    var TOKEN = "MLY|8670740469708214|68725d261ba9f7ba7fb6c9b65eaa4ae8";
+    var viewer;
+
+    var map = L.map("game-map").setView([0, 0], 0);
+    L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", { maxZoom: 19 }).addTo(map);
+    document.getElementById("game-map").addEventListener("transitionend", function () {
+      map.invalidateSize(true);
+    });
+    var mapGuessPin = L.marker([0, 0]);
+    map.on("click", function (event) {
+      mapGuessPin.setLatLng(event.latlng);
+      mapGuessPin.addTo(map);
+      document.getElementById("game-make-guess").disabled = false;
+    });
+    var mapAnswerPin = L.marker([0, 0], { icon: L.divIcon({ html: "🏁", className: "answerFlag" }) });
+    var mapDeltaLine = L.polyline([], { dashArray: "4", color: "#000000" });
+    var scoreboardMap;
+
+    document.getElementById("spinner").addEventListener("cancel", ev => ev.preventDefault());
+    document.getElementById("scoreboard").addEventListener("cancel", ev => ev.preventDefault());
+
+    async function getImagery(bbox, pano = true) {
+      var url = new URL("https://graph.mapillary.com/images");
+      url.searchParams.set("access_token", TOKEN);
+      url.searchParams.set("bbox", bbox);
+      url.searchParams.set("is_pano", pano);
+      url.searchParams.set("limit", 2);
+      var body = await fetch(url).then(r => r.json());
+      return body.data.map(img => {
+        return { id: img.id, coords: img.geometry.coordinates };
+      });
+    }
+
+    async function uniformImagery(seed, bbox, pano = true) {
+      function quadrant(bbox, i) {
+        switch (i) {
+          case 0: return [(bbox[0] + bbox[2]) / 2, (bbox[1] + bbox[3]) / 2, bbox[2], bbox[3]];
+          case 1: return [bbox[0], (bbox[1] + bbox[3]) / 2, (bbox[0] + bbox[2]) / 2, bbox[3]];
+          case 2: return [bbox[0], bbox[1], (bbox[0] + bbox[2]) / 2, (bbox[1] + bbox[3]) / 2];
+          case 3: return [(bbox[0] + bbox[2]) / 2, bbox[1], bbox[2], (bbox[1] + bbox[3]) / 2];
+          default: return bbox;
+        }
+      }
+      var rng = new Math.seedrandom(seed);
+      var maxDepth = 20;
+      while (maxDepth > 0) {
+        var candidates;
+        var tried = new Set();
+        while (true) {
+          if (tried.size == 4) throw new Error("No Image in source box");
+          var i = Math.trunc(rng() * 4);
+          if (tried.has(i)) continue;
+          candidates = await getImagery(quadrant(bbox, i), pano);
+          if (candidates.length == 0) {
+            tried.add(i);
+            continue;
+          }
+          bbox = quadrant(bbox, i);
+          maxDepth--;
+          break;
+        }
+        if (candidates == 1) break;
+      }
+      return candidates[0];
+    }
+
+    var state = {
+      score: 0,
+      round: 0,
+      image: null,
+      guesses: [],
+    };
+
+    async function resetGame() {
+      document.getElementById("scoreboard").close();
+      if (scoreboardMap) {
+        scoreboardMap.remove();
+        scoreboardMap = null;
+      }
+      document.getElementById("view").hidden = false;
+      map.invalidateSize(true);
+      viewer = new Viewer({
+        accessToken: TOKEN,
+        container: "view",
+        component: {
+          cover: false,
+          attribution: false,
+          sequence: false,
+          zoom: false,
+          bearing: false,
+        },
+      });
+      viewer.on("bearing", function (event) {
+        document.getElementById("game-info-bearing").style.rotate = (360 - event.bearing.toFixed(0)) + "deg";
+      });
+      state.score = 0;
+      state.round = 0;
+      state.image = null;
+      state.guesses = [];
+      document.getElementById("game-make-guess").disabled = true;
+      await nextRound();
+    }
+
+    async function nextRound() {
+      document.getElementById("spinner").showModal();
+      if (state.round >= 5) {
+        scoreboardMap = L.map("scoreboard-map").setView([0,0],0);
+        L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", { maxZoom: 19 }).addTo(scoreboardMap);
+        const group = L.featureGroup();
+        for (const { guess, answer } of state.guesses) {
+          L.polyline([guess, answer], { dashArray: "4", color: "#000000" }).addTo(group);
+          L.marker(guess).addTo(group);
+          L.marker(answer, { icon: L.divIcon({ html: "🏁", className: "answerFlag" }) }).addTo(group);
+        }
+        group.addTo(scoreboardMap);
+        document.getElementById("scoreboard").showModal();
+        document.getElementById("scoreboard-score").textContent = state.score;
+        document.getElementById("scoreboard-bar").value = state.score;
+        scoreboardMap.invalidateSize();
+        scoreboardMap.flyToBounds(group.getBounds());
+        return;
+      }
+      // update info
+      state.round++;
+      document.getElementById("game-info-round").textContent = `${state.round} / 5`;
+      document.getElementById("game-info-score").textContent = state.score;
+      // reset image
+      state.image = await uniformImagery(`ProgSocJS2024:${state.round}`, [-170, -80, 170, 80]);
+      await resetCamera();
+      // reset map
+      map.setView([0, 0], 0);
+      mapGuessPin.remove();
+      mapAnswerPin.remove();
+      mapDeltaLine.remove();
+      document.getElementById("game-make-guess").disabled = true;
+      document.getElementById("spinner").close();
+    }
+
+    async function resetCamera() {
+      await viewer.moveTo(state.image.id);
+      viewer.setCenter([0.5, 0.5]);
+    }
+
+    function makeGuess() {
+      var guess = map.wrapLatLng(mapGuessPin.getLatLng());
+      var answer = [state.image.coords[1], state.image.coords[0]];
+      mapGuessPin.setLatLng(guess);
+      mapAnswerPin.setLatLng(answer).addTo(map);
+      mapDeltaLine.setLatLngs([guess, answer]).addTo(map);
+      map.panTo(answer);
+      var score = Math.trunc(5000 * Math.exp(-2 * Math.PI * Math.max(0, map.distance(answer, guess) - 20) / 20_000_000) ** 2);
+      state.guesses.push({ guess, answer });
+      state.score += score;
+      document.getElementById("game-info-score").textContent = state.score;
+      setTimeout(nextRound, 5000);
+    }
+
+    function calculateScore(range, target, guess) {
+      return 5000 * Math.exp(-1 * (Math.e * L.distance(target, guess) / range) ** 2);
+    }
+  </script>
+</body>
+</html>
