@@ -14,6 +14,8 @@ By the end of the workshop, you'll be able to use your skills to:
 
 You'll also have built a working [GeoGuessr](https://www.geoguessr.com/) clone, that you can keep tinkering with to make it your own!
 
+You can preview what your's might look like here: <https://progsoc.github.io/JavaScript2024/game.html>
+
 
 ## Instructions
 
