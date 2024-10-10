@@ -19,7 +19,7 @@ You can preview what your's might look like here: <https://progsoc.github.io/Jav
 
 ## Instructions
 
-* Slides: <https://>
+* Slides: <https://docs.google.com/presentation/d/1AVtajnmfTIq4Q5KZmoaTH_dJ6GkPLFhu2ScoFnnDA5E>
 
 ### Tools
 
