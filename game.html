@@ -235,6 +235,9 @@
 
     async function resetGame() {
       document.getElementById("scoreboard").close();
+      if (viewer) {
+        viewer.remove();
+      }
       if (scoreboardMap) {
         scoreboardMap.remove();
         scoreboardMap = null;
